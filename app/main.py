@@ -66,13 +66,29 @@ def health():
 
 
 @app.get("/checkins")
-def list_checkins():
+def list_checkins(mood: str | None = None, activity: str | None = None):
     try:
+        query = "SELECT id, mood, activity, note FROM checkins"
+        conditions = []
+        params = []
+
+        if mood is not None:
+            conditions.append("mood = %s")
+            params.append(mood)
+
+        if activity is not None:
+            conditions.append("activity = %s")
+            params.append(activity)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY id"
+
         with get_connection() as conn:
-            rows = conn.execute(
-                "SELECT id, mood, activity, note FROM checkins ORDER BY id"
-            ).fetchall()
+            rows = conn.execute(query, tuple(params)).fetchall()
             return rows
+
     except psycopg.OperationalError:
         raise HTTPException(
             status_code=503,
